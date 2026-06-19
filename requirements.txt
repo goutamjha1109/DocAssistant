@@ -1,0 +1,4 @@
+arxiv==4.0.0
+requests
+pydantic-settings
+pymupdf
