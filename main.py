@@ -1,14 +1,12 @@
 from pathlib import Path
 import argparse
 
-import pandas as pd
-
-from data_curator.ingestion.arxiv_client import (
+from src.data_curator.ingestion.arxiv_client import (
     search_papers,
     download_papers, Paper
 )
 
-from data_curator.ingestion.pdf_parser import (
+from src.data_curator.ingestion.pdf_parser import (
     extract_text,
     save_parsed_text
 )

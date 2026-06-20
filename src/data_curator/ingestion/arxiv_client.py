@@ -1,7 +1,7 @@
 import arxiv
 import requests
 from pathlib import Path
-from data_curator.config import get_settings
+# from data_curator.config import get_settings
 from pydantic import BaseModel, ConfigDict
 
 
@@ -19,7 +19,7 @@ class Paper(BaseModel):
     published: str
 
 
-def search_papers(query: str, max_results: int = 5) -> list[dict]:
+def search_papers(query: str, max_results: int = 5) -> list[Paper]:
     client = arxiv.Client()
     search = arxiv.Search(
         query=query,
@@ -41,18 +41,19 @@ def search_papers(query: str, max_results: int = 5) -> list[dict]:
     return papers
 
 
-def download_papers(paper: dict, download_dir: Path) -> Path:
+def download_papers(paper: Paper, download_dir: Path) -> Path:
     download_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = download_dir / f"{paper.arxiv_id}.pdf"
     if pdf_path.exists():
         return pdf_path
     response = requests.get(paper.pdf_url , stream=True)
-    response.raise_for_status()
-    with open(pdf_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=1024):
-            f.write(chunk)
-        return pdf_path
-
-
+    try:
+        response.raise_for_status()
+        with open(pdf_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                f.write(chunk)
+            return pdf_path
+    except Exception as e:
+        print(f"Error occured while downloading paper : {paper.title}:{e}")
 
 
