@@ -1,6 +1,9 @@
 import arxiv
 import requests
 from pathlib import Path
+
+from transformers.testing_utils import parse_flag_from_env
+
 from data_curator.config import get_settings
 from pydantic import BaseModel, ConfigDict
 
@@ -24,7 +27,8 @@ def search_papers(query: str, max_results: int = 5) -> list[dict]:
     search = arxiv.Search(
         query=query,
         max_results=max_results,
-        sort_by=arxiv.SortCriterion.SubmittedDate
+        sort_by=arxiv.SortCriterion.Relevance
+        # sort_by=arxiv.SortCriterion.SubmittedDate
     )
     papers: list[Paper] = []
     for result in client.results(search):
@@ -52,6 +56,17 @@ def download_papers(paper: dict, download_dir: Path) -> Path:
         for chunk in response.iter_content(chunk_size=1024):
             f.write(chunk)
         return pdf_path
+
+
+def save_metadata(paper: Paper, metadata_dir : Path) -> Path:
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+    metadata_path = metadata_dir / f"{paper.arxiv_id}.json"
+    metadata_path.write_text(paper.model_dump_json(indent=2), encoding="utf-8")
+    return metadata_path
+
+def load_metadata(arxiv_id: str, metadata_dir: Path) -> Path:
+    metadata_path = metadata_dir / f"{arxiv_id}.json"
+    return Paper.model_validate_json(metadata_path.read_text(encoding="utf-8"))
 
 
 
