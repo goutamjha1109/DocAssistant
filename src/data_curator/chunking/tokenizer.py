@@ -1,7 +1,7 @@
 import tiktoken
 import os
 
-from data_curator.config import get_settings
+from src.data_curator.config import get_settings
 settings =  get_settings()
 
 

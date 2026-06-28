@@ -1,5 +1,5 @@
 from sentence_transformers import SentenceTransformer
-from data_curator.config import get_settings
+from src.data_curator.config import get_settings
 
 settings = get_settings()
 _model = SentenceTransformer(settings.sentence_transformer_model)

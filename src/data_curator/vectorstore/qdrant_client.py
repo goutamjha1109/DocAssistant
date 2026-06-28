@@ -3,7 +3,7 @@ import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 
-from data_curator.config import get_settings
+from src.data_curator.config import get_settings
 
 settings = get_settings()
 _client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)

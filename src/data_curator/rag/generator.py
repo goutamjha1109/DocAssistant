@@ -1,7 +1,7 @@
 # src/data_curator/rag/generator.py
 
 from groq import Groq
-from data_curator.config import get_settings
+from src.data_curator.config import get_settings
 
 settings = get_settings()
 _client = Groq(api_key=settings.groq_api_key)

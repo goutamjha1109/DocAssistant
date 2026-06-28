@@ -22,7 +22,7 @@ class Paper(BaseModel):
     published: str
 
 
-def search_papers(query: str, max_results: int = 5) -> list[dict]:
+def search_papers(query: str, max_results: int = 5) -> list[Paper]:
     client = arxiv.Client()
     search = arxiv.Search(
         query=query,
@@ -45,7 +45,7 @@ def search_papers(query: str, max_results: int = 5) -> list[dict]:
     return papers
 
 
-def download_papers(paper: dict, download_dir: Path) -> Path:
+def download_papers(paper: Paper, download_dir: Path) -> Path:
     download_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = download_dir / f"{paper.arxiv_id}.pdf"
     if pdf_path.exists():
@@ -64,10 +64,7 @@ def save_metadata(paper: Paper, metadata_dir : Path) -> Path:
     metadata_path.write_text(paper.model_dump_json(indent=2), encoding="utf-8")
     return metadata_path
 
-def load_metadata(arxiv_id: str, metadata_dir: Path) -> Path:
+
+def load_metadata(arxiv_id: str, metadata_dir: Path) -> Paper:
     metadata_path = metadata_dir / f"{arxiv_id}.json"
     return Paper.model_validate_json(metadata_path.read_text(encoding="utf-8"))
-
-
-
-

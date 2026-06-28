@@ -1,0 +1,60 @@
+name: Daily arXiv Ingest
+
+on:
+  # Runs every day at 8:00 AM UTC automatically
+  schedule:
+    - cron: '0 8 * * *'
+
+  # Also lets you trigger manually from the GitHub Actions UI
+  # with a custom query and result count
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'arXiv search query (e.g. "large language models")'
+        required: false
+        default: 'robotics'
+      max_results:
+        description: 'Max number of papers to fetch'
+        required: false
+        default: '5'
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed to commit manifest back to repo
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run ingestion
+        env:
+          GROQ_API_KEY:    ${{ secrets.GROQ_API_KEY }}
+          QDRANT_API_KEY:  ${{ secrets.QDRANT_API_KEY }}
+          OPENAI_API_KEY:  ${{ secrets.OPENAI_API_KEY }}
+          CLOUD_RUN:       "true"   # always delete PDFs on the runner
+        run: |
+          python main.py \
+            --query "${{ github.event.inputs.query || 'robotics' }}" \
+            --max_results "${{ github.event.inputs.max_results || 5 }}"
+
+      - name: Commit updated manifest and metadata
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ingested.json data/metadata/
+          # only commit if something actually changed
+          git diff --cached --quiet || \
+            git commit -m "chore: ingest run $(date -u +'%Y-%m-%d') [skip ci]" && \
+            git push
