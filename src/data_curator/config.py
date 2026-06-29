@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     # )
     groq_api_key: str
     groq_model: str = "llama-3.1-8b-instant"
+    # groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str | None = None
     pinecone_api_key: str | None = None  # <- new
     embedding_model: str = "text-embedding-3-small"

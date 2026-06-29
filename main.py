@@ -64,7 +64,7 @@ def main():
     args = parser.parse_args()
 
     if args.ask:
-        ask(args.ask)
+        ask(args.ask, top_k= 5)
     else:
         ingest(query=args.query, max_results=args.max_results)
 
@@ -73,25 +73,11 @@ if __name__ == "__main__":
     main()
 
 
-# def query_index(question: str, top_k: int = 3) -> None:
-#     query_vec = embed_query(question)
-#     results = search(query_vec, top_k=top_k)
-#     for r in results:
-#         print(f"score={r['score']:.3f} | {r['title']} | {r['chunk_text'][:150]}")
-#
-#
-# def main():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("-q", "--query", default="robotics", type=str)
-#     parser.add_argument("-d", "--max_results", default=5, type=int)
-#     parser.add_argument("--ask", type=str, default=None, help="Search the index instead of ingesting")
-#     args = parser.parse_args()
-#
-#     if args.ask:
-#         query_index(args.ask)
-#     else:
-#         ingest(query=args.query, max_results=args.max_results)
 
-#
-# if __name__ == "__main__":
-#     main()
+"""
+
+python main.py --query "transformer attention mechanism" --max_results 3
+
+python main.py --ask "How does scaled dot-product attention work?"
+
+"""
