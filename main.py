@@ -19,44 +19,36 @@ load_dotenv(override=True)
 
 RAW_DIR = Path("data/raw")
 PROCESSED_DIR = Path("data/processed")
-METADATA_DIR  = Path("data/metadata")
-MANIFEST_PATH = Path("data/ingested.json")
+METADATA_PATH  = Path("data/metadata/ingested_papers.json")
 
 CLOUD_RUN = os.getenv("CLOUD_RUN", "false").lower() == "true"
 
-def load_manifest() -> set[str]:
-    """Return set of already-ingested arxiv IDs."""
-    if MANIFEST_PATH.exists():
-        return set(json.loads(MANIFEST_PATH.read_text(encoding="utf-8")))
-    return set()
-
-def save_manifest(ingested: set[str]) -> None:
-    """Persist the manifest — written after every successful paper."""
-    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST_PATH.write_text(
-        json.dumps(sorted(ingested), indent=2), encoding="utf-8"
-    )
-
+def load_metadata_json() -> list[dict]:
+    """Returns list of already-ingested paper metadata dicts."""
+    if METADATA_PATH.exists():
+        return json.loads(METADATA_PATH.read_text(encoding="utf-8"))
+    return []
 
 def ingest(query: str, max_results: int) -> None:
     settings = get_settings()
     ensure_collection(vector_size=settings.embedding_dim)
 
-    ingested = load_manifest()
+    metadata = load_metadata_json()
+    ingested_arxiv_id = [paper['arxiv_id'] for paper in metadata if paper.get('arxiv_id')]
+    print(f"{len(ingested_arxiv_id)} Papers already ingested in the qdrant.")
     papers = search_papers(query=query, max_results=max_results)
 
     new_count = 0
     for paper in papers:
         # Skip already-processed papers
-        if paper.arxiv_id in ingested:
+        if paper.arxiv_id in ingested_arxiv_id:
             print(f"already ingested: {paper.arxiv_id}:{paper.title}")
             continue
         try:
             pdf_path = download_papers(paper, download_dir=RAW_DIR)
-            save_metadata(paper, METADATA_DIR)
 
             text = extract_text(pdf_path)
-            save_parsed_text(text, paper.arxiv_id, PROCESSED_DIR)
+            # save_parsed_text(text, paper.arxiv_id, PROCESSED_DIR)
 
             chunks = recursive_character_split(text)
             vectors = embed_texts(chunks)
@@ -73,8 +65,8 @@ def ingest(query: str, max_results: int) -> None:
                 if deleted:
                     print(f"Successfully deleted pdf from local: {paper.title}:{paper.arxiv_id}")
 
-            ingested.add(paper.arxiv_id)
-            save_manifest(ingested)
+            metadata.append(paper.model_dump())
+            save_metadata(metadata, METADATA_PATH)
             new_count += 1
 
         except Exception as e:

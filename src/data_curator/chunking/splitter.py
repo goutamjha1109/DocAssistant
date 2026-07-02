@@ -1,9 +1,5 @@
-from http.cookiejar import cut_port_re
-
-from networkx.algorithms.bipartite.projection import overlap_weighted_projected_graph
-
-from data_curator.chunking.tokenizer import count_tokens, encode, decode
-from data_curator.config import get_settings
+from src.data_curator.chunking.tokenizer import count_tokens, encode, decode
+from src.data_curator.config import get_settings
 
 
 SEPARATORS = ["\n\n", "\n", ". ", " ", ""]

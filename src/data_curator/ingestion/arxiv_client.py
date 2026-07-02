@@ -4,9 +4,9 @@ from pathlib import Path
 
 from transformers.testing_utils import parse_flag_from_env
 
-from data_curator.config import get_settings
+from src.data_curator.config import get_settings
 from pydantic import BaseModel, ConfigDict
-
+import json
 
 # settings = get_settings()
 
@@ -58,10 +58,12 @@ def download_papers(paper: Paper, download_dir: Path) -> Path:
         return pdf_path
 
 
-def save_metadata(paper: Paper, metadata_dir : Path) -> Path:
-    metadata_dir.mkdir(parents=True, exist_ok=True)
-    metadata_path = metadata_dir / f"{paper.arxiv_id}.json"
-    metadata_path.write_text(paper.model_dump_json(indent=2), encoding="utf-8")
+def save_metadata(papers: list[dict], metadata_path : Path) -> Path:
+    if not str(metadata_path).endswith(".json"):
+        print(f"metadata path: {metadata_path} must end with json")
+        return None
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(papers,indent=2),encoding='utf-8')
     return metadata_path
 
 
