@@ -8,7 +8,7 @@ from src.data_curator.config import get_settings
 from pydantic import BaseModel, ConfigDict
 import json
 
-# settings = get_settings()
+settings = get_settings()
 
 
 class Paper(BaseModel):
