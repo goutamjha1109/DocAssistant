@@ -43,7 +43,7 @@ def ingest_arxiv_papers():
     @task
     def load_metadata_json(**context:Context) -> None:
         """Pushes already-ingested paper metadata dicts into xcom"""
-        METADATA_PATH = Path(r"data\metadata\ingested_papers.json")
+        METADATA_PATH = Path("data/metadata/ingested_papers.json")
         if METADATA_PATH.exists():
             ingested_papers = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
         else:
@@ -112,7 +112,7 @@ def ingest_arxiv_papers():
             processed_papers (list[dict]): processed_papers
         """
         from src.data_curator.ingestion.arxiv_client import save_metadata
-        METADATA_PATH = Path(r"data\metadata\ingested_papers.json")
+        METADATA_PATH = Path("data/metadata/ingested_papers.json")
         processed_papers = [paper for paper in processed_papers if paper is not None]
         
         ingested_papers = context['ti'].xcom_pull(task_ids='load_metadata_json',key='ingested_papers')
