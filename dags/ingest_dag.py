@@ -33,10 +33,11 @@ def ingest_arxiv_papers():
         settings = get_settings()
         try:
             ensure_collection(vector_size=settings.embedding_dim)
+            print(f"Qdrant Collection exists:{settings.qdrant_collection}")
             return PokeReturnValue(is_done=True)
         
         except Exception as e:
-            print(f"[ensure_qdrant_collection] Failed setting up qdrant colelction:{e}")
+            print(f"Failed setting up qdrant colelction:{e}")
             return PokeReturnValue(is_done=False)
 
     
@@ -46,7 +47,10 @@ def ingest_arxiv_papers():
         METADATA_PATH = Path("data/metadata/ingested_papers.json")
         if METADATA_PATH.exists():
             ingested_papers = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
+            print(f"Found ingested papers : {len(ingested_papers)} in directory")
+            print("|".join(f"{paper['title']}:{paper['arxiv_id']}" for paper in ingested_papers))
         else:
+            print("No metadata found, first time ingestion...")
             ingested_papers = []
         context['ti'].xcom_push(key='ingested_papers',value=ingested_papers)
     
@@ -63,6 +67,11 @@ def ingest_arxiv_papers():
         ingested_paper_ids = [ingested_paper['arxiv_id'] for ingested_paper in already_ingested_papers]
         papers:list[Paper] = search_papers(query='robotics')
         new_papers: list[dict] = [paper.model_dump() for paper in papers if paper.arxiv_id not in ingested_paper_ids]
+        if new_papers:
+            print(f"Fetched new papers from Arxiv Client :{len(new_papers)}")
+            print("|".join(f"{paper['title']}:{paper['arxiv_id']}" for paper in new_papers))
+        else:
+            print("Fetched 0 Papers from Arxiv Client,skipping pipeline...")
         return new_papers
     
     @task
@@ -86,11 +95,14 @@ def ingest_arxiv_papers():
         RAW_DIR = Path("data/raw")
         CLOUD_RUN = os.getenv("CLOUD_RUN", "false").lower() == "true"
         
+        print(f"Processing paper:{paper['title']}:{paper['arxiv_id']}")
         paper_obj = Paper(**paper)
         pdf_path = download_papers(paper_obj, download_dir=RAW_DIR)
         text:str = extract_text(pdf_path)
         chunks:list[str] = recursive_character_split(text)
+        print(f"Successfully Splitted text into {len(chunks)} chunks")
         vectors:list[list[float]] = embed_texts(chunks)
+        print(f"Successfully Vectorized Chunks into Embedding vectors")
         upsert_chunks(
                 chunks=chunks,
                 vectors=vectors,
@@ -102,6 +114,7 @@ def ingest_arxiv_papers():
                 
         if CLOUD_RUN:
             delete_pdf(pdf_path=pdf_path)
+            print(f"Successfully deleted pdf from local: {paper['title']}:{paper['arxiv_id']}")
         
         return paper
     
@@ -118,6 +131,7 @@ def ingest_arxiv_papers():
         ingested_papers = context['ti'].xcom_pull(task_ids='load_metadata_json',key='ingested_papers')
         ingested_papers.extend(processed_papers)
         save_metadata(ingested_papers, METADATA_PATH)
+        print(f"Metadata updated {len(processed_papers)} papers added, {len(ingested_papers)} total.")
 
     
     collection_ensured = ensure_qdrant_collection()
