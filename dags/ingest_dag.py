@@ -4,6 +4,10 @@ from datetime import datetime
 import json
 from pathlib import Path
 import os
+import sys
+
+sys.path.insert(0, "/mnt/d/DocAssistant")
+
 
 @dag(
     start_date = datetime(year=2026,month=7,day=14),
