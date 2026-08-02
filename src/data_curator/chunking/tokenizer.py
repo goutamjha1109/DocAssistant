@@ -18,4 +18,5 @@ def encode(text: str) -> list[int]:
 def decode(tokens: list[int]) -> str:
     return _encoder.decode(tokens)
 
-
+def decode_single_tokens(tokens:list[int]) -> list[str]:
+    return [_encoder.decode_single_token_bytes(token) for token in tokens]
