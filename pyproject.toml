@@ -20,6 +20,7 @@ dependencies = [
     "sentence-transformers",
     "qdrant-client",
     "groq",
+    "nltk"
 ]
 
 [tool.setuptools.packages.find]
