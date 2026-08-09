@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     pinecone_api_key: str | None = None  # <- new
     embedding_model: str = "text-embedding-3-small"
     sentence_transformer_model: str = "all-MiniLM-L6-v2"
+    cross_encoder_model: str = "ettin-reranker-68m-v1"
     embedding_dim: int = 384
     qdrant_url: str = "https://e9f82bec-cb9a-4d77-a665-4e15fbd37436.us-west-2-0.aws.cloud.qdrant.io"
     qdrant_api_key: str | None = None
