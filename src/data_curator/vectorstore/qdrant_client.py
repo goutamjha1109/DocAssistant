@@ -1,8 +1,7 @@
-
 import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
-
+from typing import Union
 from src.data_curator.config import get_settings
 
 settings = get_settings()
@@ -48,7 +47,7 @@ def upsert_chunks(
     _client.upsert(collection_name=settings.qdrant_collection, points=points)
 
 
-def search(query_vector: list[float], top_k: int = 5) -> list[dict]:
+def search(query_vector: list[float], top_k: int = 20) -> list[dict]:
     results = _client.query_points(
         collection_name=settings.qdrant_collection,
         query=query_vector,
@@ -65,3 +64,24 @@ def search(query_vector: list[float], top_k: int = 5) -> list[dict]:
         }
         for r in results
     ]
+
+def fetch_all_points_from_qdrant() -> list[dict]:
+    all_points = []
+    next_offset = None
+
+    while True:
+        records, next_offset = _client.scroll(
+            collection_name=settings.qdrant_collection,
+            limit=256,
+            offset=next_offset,
+            with_payload = ['chunk_index','chunk_text','paper_id','title']
+        )
+        chunks = [record.payload for record in records]
+        all_points.extend(chunks)
+        
+        if not next_offset:
+            break
+        
+        print(f"Fetched {len(all_points)} from the qdrant")
+    
+    return all_points

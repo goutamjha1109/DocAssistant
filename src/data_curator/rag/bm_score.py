@@ -9,18 +9,18 @@ _stemmer = SnowballStemmer(language="english")
 _stopwords = set(map(_stemmer.stem,stopwords.words("english")))
 
 class BM25Scorer:
-    def __init__(self, query: str, chunks: list[str], k1: float = 1.2, b: float = 0.75):
+    def __init__(self, query: str, chunks: list[dict[str,str]], k1: float = 1.2, b: float = 0.75):
         self.query = query
         self.chunks = chunks
         self.K1 = k1
         self.B = b
         self.IDF_MAP = {}
-        self.cleaned_chunks = [
-            {"chunk": chunk, "cleaned_chunk": " ".join(self.create_clean_tokens(chunk))}
+        self.cleaned_chunks:list[dict] = [
+            {**chunk, "cleaned_chunk":" ".join(self.create_clean_tokens(chunk['chunk_text']))}
             for chunk in self.chunks
         ]
         self.avgdl = self.__get_average_token_length()
-    
+
     def __get_average_token_length(self) -> float:
         return sum(len(chunk['cleaned_chunk'].split()) for chunk in self.cleaned_chunks) / len(self.cleaned_chunks)
 
@@ -75,23 +75,24 @@ class BM25Scorer:
             )
         return score
 
-    def get_bm25_scores(self):
+    def get_bm25_scores(self,top_k = 20):
         print(f"Starting BM25 Score calculations..")
-        
+
         query_tokens = self.create_clean_tokens(self.query)
         print(f"Query:{self.query} converted to tokens {' '.join(query_tokens)}")
-        
+
         self.init_idf_map(query_tokens)
         print(f"Initialized IDF Map for query tokens given the knowledge base.")
 
-        CHUNK_MAP = []
-        for idx, cleaned_chunk in enumerate(self.cleaned_chunks):
+        scored_chunks = []
+        for cleaned_chunk in self.cleaned_chunks:
             score = self.get_bm25_score_per_chunk(cleaned_chunk['cleaned_chunk'], query_tokens)
-            CHUNK_MAP.append({"index": idx, "chunk_text": cleaned_chunk['chunk'], "score": score})
-            print(f"Chunk index: {idx} has BM25 {score}")
+            print(f"Chunk index: {cleaned_chunk['chunk_index']} has BM25 {score}")
+            cleaned_chunk.update({"score": score})
+            scored_chunks.append(cleaned_chunk)
 
-        return CHUNK_MAP
-    
+        return sorted(scored_chunks, key = lambda x: x['score'], reverse= True)[:top_k]
+
 
 # if __name__ == "__main__":
 #     from src.data_curator.chunking.splitter import recursive_character_split
@@ -99,12 +100,12 @@ class BM25Scorer:
 #     with open(path,'r',encoding='utf-8') as file:
 #         text = file.read()
 #         chunks = recursive_character_split(text)
-    
+
 #     question = "What is the definition of StylisticBias as introduced in the paper?"
 #     scorer = BM25Scorer(query=question,chunks=chunks)
 #     scored_chunks = scorer.get_bm25_scores()
 #     top_5_chunks = sorted(scored_chunks, key=lambda x:x['score'],reverse=True)[:5]
-    
+
 #     for chunk in top_5_chunks:
 #         print("="*10)
 #         print(chunk['chunk_text'])

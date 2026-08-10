@@ -10,7 +10,7 @@ from src.data_curator.ingestion.delete_pdf import delete_pdf
 from src.data_curator.chunking.splitter import recursive_character_split
 from src.data_curator.embeddings.sentence_embedder import embed_texts, embed_query
 from src.data_curator.vectorstore.qdrant_client import ensure_collection, upsert_chunks, search
-from src.data_curator.rag.retriever import retrieve
+from src.data_curator.rag.retriever import hybrid_retriever
 from src.data_curator.rag.prompt import build_prompt
 from src.data_curator.rag.generator import generate
 from src.data_curator.config import get_settings
@@ -79,8 +79,20 @@ def ingest(query: str, max_results: int) -> None:
         print(f"\nDone. {new_count} new paper(s) ingested.")
 
 
-def ask(question: str, top_k: int = 3) -> None:
-    chunks = retrieve(question, top_k=top_k)
+def ask(
+    question: str,
+    dense_top_k: int = 20,
+    sparse_top_k: int = 20,
+    rrf_top_k: int = 10,
+    final_top_k: int = 5,
+) -> None:
+    chunks = hybrid_retriever(
+        question,
+        dense_top_k=dense_top_k,
+        sparse_top_k=sparse_top_k,
+        rrf_top_k=rrf_top_k,
+        final_top_k=final_top_k,
+    )
     system, user = build_prompt(question, chunks)
     answer = generate(system, user)
     print(f"\nQuestion: {question}")
