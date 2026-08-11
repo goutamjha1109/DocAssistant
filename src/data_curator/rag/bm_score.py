@@ -10,22 +10,39 @@ _stopwords = set(map(_stemmer.stem,stopwords.words("english")))
 
 class BM25Scorer:
     def __init__(self, query: str, chunks: list[dict[str,str]], k1: float = 1.2, b: float = 0.75):
+        """Initialize BM25 Scorer"""
         self.query = query
-        self.chunks = chunks
+        self.chunks:list[dict] = chunks # Contains chunk_index, paper_id, chunk_text, title
         self.K1 = k1
         self.B = b
         self.IDF_MAP = {}
         self.cleaned_chunks:list[dict] = [
             {**chunk, "cleaned_chunk":" ".join(self.create_clean_tokens(chunk['chunk_text']))}
             for chunk in self.chunks
-        ]
+        ] # Clean every chunk for accurate tf and idf calculation
         self.avgdl = self.__get_average_token_length()
 
     def __get_average_token_length(self) -> float:
+        """
+        Calcuates average token length across the documents.
+
+        Returns:
+            float: calculates 'avgdl' parameter
+        """
         return sum(len(chunk['cleaned_chunk'].split()) for chunk in self.cleaned_chunks) / len(self.cleaned_chunks)
 
     @staticmethod
     def create_clean_tokens(text: str) -> list[str]:
+        """
+        Tokenizes words by splitting on spaces, and cleaning every token
+        Tokenizes both query and chunk documents using same method for exact matching
+
+        Args:
+            text (str): text to create tokens for
+
+        Returns:
+            list[str]: list of cleaned tokens
+        """
         token_list = []
         for word in text.split():
             cleaned_word = re.sub(r"[^a-zA-Z0-9]","",word)
@@ -37,6 +54,14 @@ class BM25Scorer:
         return token_list
 
     def get_inverse_document_frequency_for_token(self, token: str) -> float:
+        """
+        Calcuates inverse document frequency of a token wrto ingested chunks.
+        Args:
+            token (str): token to create idf for
+
+        Returns:
+            float: idf
+        """
         print(f"Calculating IDF for query token: {token}")
         pattern = re.compile(pattern=rf"\b{re.escape(token)}\b", flags=re.IGNORECASE)
         found_in_chunks = sum(1 for cleaned_chunk in self.cleaned_chunks 
@@ -49,6 +74,11 @@ class BM25Scorer:
         return max(0,idf) # Negative IDF scores are restricted to 0
 
     def init_idf_map(self, tokens: list[str]):
+        """Initialize idf for all the query tokens
+
+        Args:
+            tokens (list[str]): query tokens
+        """
         for token in tokens:
             if token not in self.IDF_MAP:
                 idf = self.get_inverse_document_frequency_for_token(token)
@@ -58,11 +88,31 @@ class BM25Scorer:
                 print(f"Token: {token} is already in map, skipping IDF calculation")
 
     @staticmethod
-    def term_frequency_per_chunk(token: str, cleaned_chunk: str):
+    def term_frequency_per_chunk(token: str, cleaned_chunk: str) -> int:
+        """Calculate term frequency of a token in a document
+
+        Args:
+            token (str): query token
+            cleaned_chunk (str): Cleaned document
+
+        Returns:
+            int: term frequency
+        """
         pattern = re.compile(pattern=rf"\b{re.escape(token)}\b", flags=re.IGNORECASE)
         return len(pattern.findall(cleaned_chunk))
 
-    def get_bm25_score_per_chunk(self, cleaned_chunk: str, tokens: list[str]):
+    def get_bm25_score_per_chunk(self, cleaned_chunk: str, tokens: list[str]) -> float:
+        """
+        Calculate BM25 Score for a document given a query.
+        Calculates exact query token occurence.  
+
+        Args:
+            cleaned_chunk (str): Cleaned chunks
+            tokens (list[str]): Query Tokens
+
+        Returns:
+            float: bm25 score
+        """
         d = len(cleaned_chunk.split())
         score = 0
         for token in tokens:
@@ -75,7 +125,16 @@ class BM25Scorer:
             )
         return score
 
-    def get_bm25_scores(self,top_k = 20):
+    def get_bm25_scores(self,top_k = 20) -> list[dict]:
+        """
+        Calculate bm25 score for all the chunks and retrieves top k scored chunks for generation.
+
+        Args:
+            top_k (int): Top scored documents Defaults to 20.
+
+        Returns:
+            list[dict]: Top scored exact matched chunks for better generation
+        """
         print(f"Starting BM25 Score calculations..")
 
         query_tokens = self.create_clean_tokens(self.query)
